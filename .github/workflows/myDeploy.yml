@@ -48,6 +48,7 @@ jobs: # 작업의 단위
             dist/
             package.json
             package-lock.json
+            system.config.js
 
       # 운영 서버에 전송 ec2에 파일을 전송
       # ssh
