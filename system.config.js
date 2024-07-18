@@ -11,7 +11,7 @@ module.exports = {
                 PORT: 3000,
             },
             env_production: { // 환경변수 운영모드에서 정의할 객체
-                NODE_ENV: 'production',
+                NODE_ENV: 'production', 
                 PORT: 3000,
             },
         },
