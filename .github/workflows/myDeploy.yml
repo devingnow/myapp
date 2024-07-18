@@ -51,10 +51,42 @@ jobs: # 작업의 단위
 
       # 운영 서버에 전송 ec2에 파일을 전송
       # ssh
+      # > : 왼쪽의 출력 내용을 오른쪽에 저장한다.
+      #   = echo "${{ }}" 를 ~/.ssh/aws_key 파일을 생성하면서 내용 저장. 기존내용을 지우고 덮어씌움.
+      # chmod : 권한 변경
+      # ssh-keyscan : SSH 호스트의 키를 가져오는 명령어
+      # -H : 호스트 이름을 생성할 때 해시화해서 출력해줌
+      # run : 러너 가상 머신에서 실행될 쉘 스크립트
       - name: ssh 접근할 키파일 생성
         run : | # .ssh 폴더가 있어도 에러를 발생 시키지 않는다. 부모 디렉터리 생성 -p : parents의 약어
           mkdir -p ~/.ssh
           ls
           pwd
+          echo "${{ secrets.AWS_SECRET_KEY }}" > ~/.ssh/aws_key
+          chmod 600 ~/.ssh/aws_key
+          ssh-keyscan -H ${{ secrets.HOST }} > ~/.ssh/known_hosts
+          cat ~/.ssh/known_hosts
 
+      # 배포 준비단계 배포 하기 전에 생성할 폴더 및 파일 확인
+      # script는 ec2 운영 서버에서 실행시킬 쉘 스크립트 내용
+      # ec2 가상 서버에서 실행될 내용
+      - name: ec2 deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.AWS_SECRET_KEY }}
+          port: ${{ secrets.PORT }}
+          script: |
+            cd /home/ubuntu
+            rm -rf dist
+            mkdir dist
+            rm -rf package.json
+            rm -rf package-lock.json
 
+      # ${{ secrets.USERNAME }}@${{ secrets.HOST }}:/home/ubuntu/dist/ 우너격 서버의 폴더에 파일을 복사한다.
+      - name: ec2에 아티팩트 복사
+        run : | # scp 파일을 복사하기 위한 명령어 -r 폴더를 재귀적으로 복사한다. -i SSH 연결을 설정할 때 사용하는 키파일을 지정한다.
+          scp -r -i ~/.ssh/aws_key ./dist/* ${{ secrets.USERNAME }}@${{ secrets.HOST }}:/home/ubuntu/dist/
+          scp -i ~/.ssh/aws_key package.json ${{ secrets.USERNAME }}@${{ secrets.HOST }}:/home/ubuntu/
+          scp -i ~/.ssh/aws_key package-lock.json ${{ secrets.USERNAME }}@${{ secrets.HOST }}:/home/ubuntu/
